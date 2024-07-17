@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 public class AddingNewReport {
     public static void main(String[] args) {
+        String path = "/Users/luis/Documents/My_obsidian/";
         HashMap<String, ArrayList<String>> parent_list = new HashMap<String, ArrayList<String>>();
         HashMap<String, ArrayList<String>> children_list = new HashMap<String, ArrayList<String>>();
         ConcurrentSkipListSet<String> obsidian_ordners = new ConcurrentSkipListSet<String>();
@@ -33,7 +34,7 @@ public class AddingNewReport {
         already_parsed.add(".DS_Store");
         already_parsed.add(".obsidian");
         already_parsed.add(".trash");
-        Path directory = Paths.get("/Users/luis/Documents/My_obsidian");
+        Path directory = Paths.get(path);
         //Looks for the first ordners and elements
         if (Files.exists(directory) && Files.isDirectory(directory)) {
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory)) {
@@ -44,14 +45,11 @@ public class AddingNewReport {
                             !file.getFileName().toString().contains(".DS_Store")) {
                         if (file.getFileName().toString().contains(".md")) {
                             
-                            obsidian_elements.put(
-                                    "/Users/luismcmillan/Documents/My_obsidian/" + file.getFileName().toString(),
+                            obsidian_elements.put(path + file.getFileName().toString(),
                                     file.getFileName().toString());
                         } else {
-                            obsidian_ordners.add(
-                                    "/Users/luismcmillan/Documents/My_obsidian/" + file.getFileName().toString());
-                            general_structure.add(
-                                "/Users/luismcmillan/Documents/My_obsidian/" + file.getFileName().toString());
+                            obsidian_ordners.add(path + file.getFileName().toString());
+                            general_structure.add(path + file.getFileName().toString());
                         }
                     }
                 }
