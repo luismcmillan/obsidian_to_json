@@ -129,11 +129,12 @@ public class AddingNewReport {
 
         JSONArray jsonArray = new JSONArray();
         int id = 0;
+        String short_ordner;
         for(String ordner : general_structure) {
-            System.out.println(ordner);
+            short_ordner = ordner.substring(path.length(),ordner.length());
             for(String element : obsidian_elements.keySet()) {
                 if ((element).contains(ordner)) {
-                    jsonArray.put(creating_json_element(id ,element, obsidian_elements,children_list, parent_list));
+                    jsonArray.put(creating_json_element(id ,short_ordner ,element, obsidian_elements,children_list, parent_list));
                     id++;
                 }
             }
@@ -142,7 +143,7 @@ public class AddingNewReport {
         writing_JSON("./obsidian.json", jsonArray);
     }
 
-    public static JSONObject creating_json_element(int id, String location, Map<String, String> elements, Map<String, ArrayList<String>> children,Map<String, ArrayList<String>> parents) {
+    public static JSONObject creating_json_element(int id, String category,String location, Map<String, String> elements, Map<String, ArrayList<String>> children,Map<String, ArrayList<String>> parents) {
         JSONObject jsonObject = new JSONObject();
         StringBuilder content = new StringBuilder();
         File file = new File(location);
@@ -156,6 +157,7 @@ public class AddingNewReport {
             jsonObject.put("id", id);
             jsonObject.put("name", elements.get(location).substring(0, elements.get(location).length() - 3));
             jsonObject.put("location", location);
+            jsonObject.put("category", category);
             jsonObject.put("content", content.toString());
             jsonObject.put("children", children.get(location));
             jsonObject.put("parents", parents.get(location));
