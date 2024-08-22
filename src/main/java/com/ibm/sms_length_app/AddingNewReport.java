@@ -1,26 +1,31 @@
 package com.ibm.sms_length_app;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import java.nio.file.*;
-import java.util.regex.Matcher;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.text.DecimalFormat;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class AddingNewReport {
     public static void main(String[] args) {
@@ -102,7 +107,7 @@ public class AddingNewReport {
             for(String find_child: children){
                 //System.out.println(find_child);
                 for(String child: obsidian_elements.keySet()){
-                    System.out.println(obsidian_elements.get(child));
+                    //System.out.println(obsidian_elements.get(child));
                     String compare = obsidian_elements.get(child);
                     compare = compare.substring(0,compare.length()-3);
                     if(find_child.equals(compare)){
@@ -116,48 +121,51 @@ public class AddingNewReport {
                 }
             }
         }
-        /* 
-        for(String test1 : children_list.keySet()){
-            System.out.println(test1+" Children: " + children_list.get(test1));
-        }
-        for(String test1 : parent_list.keySet()){
-            System.out.println(test1+" parents: " + parent_list.get(test1));
-        }
-        */
-        
-        
-
         JSONArray jsonArray = new JSONArray();
         int id = 0;
         String short_ordner;
         for(String ordner : general_structure) {
+            System.out.println(ordner);
             short_ordner = ordner.substring(path.length(),ordner.length());
             for(String element : obsidian_elements.keySet()) {
-                if ((element).contains(ordner)) {
+                
+                if ((element).contains(ordner+"/")) {
+                    
                     jsonArray.put(creating_json_element(id ,short_ordner ,element, obsidian_elements,children_list, parent_list));
                     id++;
                 }
             }
         }
-       
-        writing_JSON("./obsidian.json", jsonArray);
+        System.out.println(jsonArray.length());
+        
+        Database.update_database("database-1.cva46s8aqjab.eu-central-1.rds.amazonaws.com","5432","obsidian","postgres","my_database_password",jsonArray);
+        
+        
+        
+        writing_JSON("/Users/luis/Documents/linked_in_website/this-is-me/obsidian.json", jsonArray);
+        writing_JSON("/Users/luis/Documents/Obsidian_to_java/obsidian.json", jsonArray);
     }
 
     public static JSONObject creating_json_element(int id, String category,String location, Map<String, String> elements, Map<String, ArrayList<String>> children,Map<String, ArrayList<String>> parents) {
         JSONObject jsonObject = new JSONObject();
         StringBuilder content = new StringBuilder();
         File file = new File(location);
+        Boolean is_boss = false;
         try {
             BufferedReader reader = new BufferedReader(new FileReader(file));
             String line = "";
             while ((line = reader.readLine()) != null) {
                 content.append(line+"<br/>");
             }
+            if (content.indexOf("[Boss]") != -1) {
+                is_boss = true;
+            }
             reader.close();
             jsonObject.put("id", id);
             jsonObject.put("name", elements.get(location).substring(0, elements.get(location).length() - 3));
             jsonObject.put("location", location);
             jsonObject.put("category", category);
+            jsonObject.put("is_boss", is_boss);
             jsonObject.put("content", content.toString());
             jsonObject.put("children", children.get(location));
             jsonObject.put("parents", parents.get(location));
@@ -224,6 +232,7 @@ public class AddingNewReport {
 
     public static void writing_JSON(String location, JSONArray jsonArray) {
         try(FileWriter fileWriter = new FileWriter(location)) {
+            System.out.println("JSON SIZE = "+jsonArray.length());
             fileWriter.write(jsonArray.toString(4));
             fileWriter.flush();
             System.out.println("Writing to file: " + location);
@@ -232,4 +241,5 @@ public class AddingNewReport {
         }
         
     }
+    
 }
