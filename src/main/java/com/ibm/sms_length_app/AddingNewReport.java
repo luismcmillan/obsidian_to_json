@@ -30,7 +30,6 @@ import org.json.JSONObject;
 public class AddingNewReport {
     public static void main(String[] args) {
         String path = "/Users/luis/Documents/My_obsidian/";
-        HashMap<String, ArrayList<String>> parent_list = new HashMap<String, ArrayList<String>>();
         HashMap<String, ArrayList<String>> children_list = new HashMap<String, ArrayList<String>>();
         ConcurrentSkipListSet<String> obsidian_ordners = new ConcurrentSkipListSet<String>();
         LinkedList<String> general_structure = new LinkedList<String>();
@@ -39,6 +38,7 @@ public class AddingNewReport {
         already_parsed.add(".DS_Store");
         already_parsed.add(".obsidian");
         already_parsed.add(".trash");
+        already_parsed.add(".git");
         Path directory = Paths.get(path);
         //Looks for the first ordners and elements
         if (Files.exists(directory) && Files.isDirectory(directory)) {
@@ -95,43 +95,26 @@ public class AddingNewReport {
             }
             new_size = obsidian_ordners.size();
         }
-        //Filling parents_list with empty ArrayLists
-        for(String element : obsidian_elements.keySet()) {
-            ArrayList<String> parents = new ArrayList<>();
-            parent_list.put(element, parents);
-        }
         //Going through all the elements and looking for their parents and children
         for(String location: obsidian_elements.keySet()) {
             ArrayList<String> children = find_all_links(location);
             children_list.put(location, children);
-            for(String find_child: children){
-                //System.out.println(find_child);
-                for(String child: obsidian_elements.keySet()){
-                    //System.out.println(obsidian_elements.get(child));
-                    String compare = obsidian_elements.get(child);
-                    compare = compare.substring(0,compare.length()-3);
-                    if(find_child.equals(compare)){
-                        ArrayList<String> parents = parent_list.get(child);
-                        String parent = obsidian_elements.get(location).substring(0,obsidian_elements.get(location).length()-3);
-                        if (!parents.contains(parent)){
-                            parents.add(parent);
-                        }
-                        parent_list.put(child,parents);
-                    }
-                }
-            }
+            
         }
         JSONArray jsonArray = new JSONArray();
         int id = 0;
         String short_ordner;
+        int count = 0;
         for(String ordner : general_structure) {
-            System.out.println(ordner);
+            
+            System.out.println(count+" "+ordner);
+            count++;
             short_ordner = ordner.substring(path.length(),ordner.length());
             for(String element : obsidian_elements.keySet()) {
                 
                 if ((element).contains(ordner+"/")) {
                     
-                    jsonArray.put(creating_json_element(id ,short_ordner ,element, obsidian_elements,children_list, parent_list));
+                    jsonArray.put(creating_json_element(id ,short_ordner ,element, obsidian_elements,children_list));
                     id++;
                 }
             }
@@ -146,7 +129,7 @@ public class AddingNewReport {
         writing_JSON("/Users/luis/Documents/Obsidian_to_java/obsidian.json", jsonArray);
     }
 
-    public static JSONObject creating_json_element(int id, String category,String location, Map<String, String> elements, Map<String, ArrayList<String>> children,Map<String, ArrayList<String>> parents) {
+    public static JSONObject creating_json_element(int id, String category,String location, Map<String, String> elements, Map<String, ArrayList<String>> children) {
         JSONObject jsonObject = new JSONObject();
         StringBuilder content = new StringBuilder();
         File file = new File(location);
@@ -165,10 +148,10 @@ public class AddingNewReport {
             jsonObject.put("name", elements.get(location).substring(0, elements.get(location).length() - 3));
             jsonObject.put("location", location);
             jsonObject.put("category", category);
+            jsonObject.put("priority", children.get(location).size());
             jsonObject.put("is_boss", is_boss);
             jsonObject.put("content", content.toString());
             jsonObject.put("children", children.get(location));
-            jsonObject.put("parents", parents.get(location));
         } catch (IOException e) {
 
         }
@@ -195,39 +178,60 @@ public class AddingNewReport {
         return jsonObject;
     }
 
-    public static ArrayList<String> find_all_links(String location) {
-        ArrayList<String> links = new ArrayList<String>();
-        File file = new File(location);
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line = "";
-            while ((line = reader.readLine()) != null) {
-                links.addAll(find_links_line(line));
-            }
-            reader.close();
-        } catch (IOException e) {
-
-        }
-        return links;
+    public static String removeTextBetweenBackticks(String content) {
+        Pattern pattern = Pattern.compile("```.*?```", Pattern.DOTALL);
+        Matcher matcher = pattern.matcher(content);
+        return matcher.replaceAll("");  // Entfernt den gefundenen Text
     }
 
+    // Methode, um Links in einer Zeile zu finden
     public static ArrayList<String> find_links_line(String content) {
         ArrayList<String> links = new ArrayList<String>();
-        ArrayList<String> links_without_png = new ArrayList<String>();
         Pattern pattern = Pattern.compile("\\[\\[(.*?)\\]\\]");
         Matcher matcher = pattern.matcher(content);
 
-        while(matcher.find()) {
-            links.add(matcher.group(1));
-        }
-
-        for(String link : links) {
-            if (!link.contains(".png")) {
-                links_without_png.add(link);
+        while (matcher.find()) {
+            String link = matcher.group(1);
+        // Prüfen, ob der Link nicht auf .png endet
+            if (!link.endsWith(".png") && !link.equals("Boss")) {
+                if (link.contains("/")) {
+                    link = link.substring(0, link.indexOf("/"));
+                }
+                links.add(link);
             }
         }
         
-        return links_without_png;
+        return links;
+    }
+
+    // Methode, um alle Links aus einer Datei zu finden
+    public static ArrayList<String> find_all_links(String location) {
+        ArrayList<String> links = new ArrayList<String>();
+        File file = new File(location);
+        StringBuilder contentBuilder = new StringBuilder();
+
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                contentBuilder.append(line).append("\n");
+            }
+            reader.close();
+
+            // Gesamten Inhalt verarbeiten
+            String content = contentBuilder.toString();
+
+            // Entferne den Inhalt zwischen den Backticks
+            content = removeTextBetweenBackticks(content);
+
+            // Finde alle Links im verbleibenden Text
+            links.addAll(find_links_line(content));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return links;
     }
 
     public static void writing_JSON(String location, JSONArray jsonArray) {

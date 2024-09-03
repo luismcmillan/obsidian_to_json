@@ -41,10 +41,10 @@ public class Database {
         CallableStatement stmt = conn.prepareCall("CREATE TABLE IF NOT EXISTS public.topics (content_name character varying(100) NOT NULL PRIMARY KEY,\n" + //
                         "\t\t\t\t \tcontent character varying(3000),\n" + //
                         "\t\t\t\t \tcategory character varying(31),\n" + //
+                        "\t\t\t\t \tpriority INTEGER,\n" + //
                         "\t\t\t\t \tis_boss character varying(5),\n" + //
                         "\t\t\t\t \ttarget_x DOUBLE PRECISION,\n" + //
                         "\t\t\t\t \ttarget_y DOUBLE PRECISION,\n" + //
-                        "\t\t\t\t \tparents JSONB,\n" + //
                         "\t\t\t\t\tchildren JSONB);");
 
         System.out.println("created new table");
@@ -62,21 +62,20 @@ public class Database {
     }
 
         private static void insertTopic(Connection conn, JSONObject topic) throws SQLException {
-            CallableStatement stmt = conn.prepareCall("INSERT INTO public.topics (content_name,content,category,is_boss,target_x,target_y,parents,children) VALUES(?,?,?,?,?,?,?,?)");
+            CallableStatement stmt = conn.prepareCall("INSERT INTO public.topics (content_name,content,category,priority,is_boss,target_x,target_y,children) VALUES(?,?,?,?,?,?,?,?)");
             stmt.setString(1, topic.getString("name"));
             stmt.setString(2, topic.getString("content"));
             stmt.setString(3, topic.getString("category"));
+            stmt.setInt(4, topic.getInt("priority"));
             if (topic.getBoolean("is_boss")){
-                stmt.setString(4, "true");
+                stmt.setString(5, "true");
             }else{
-                stmt.setString(4, "false");
+                stmt.setString(5, "false");
             }
             
-            stmt.setInt(5, 0);
             stmt.setInt(6, 0);
-            JSONArray parentString = topic.getJSONArray("parents");
+            stmt.setInt(7, 0);
             JSONArray childrenString = topic.getJSONArray("children");
-            stmt.setObject(7, parentString, java.sql.Types.OTHER);
             stmt.setObject(8, childrenString, java.sql.Types.OTHER);
             stmt.execute();       
             stmt.close();
